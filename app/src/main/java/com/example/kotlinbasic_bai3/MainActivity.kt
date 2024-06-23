@@ -49,7 +49,6 @@ fun AlarmApp() {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     var selectedTime by remember { mutableStateOf(Calendar.getInstance()) }
     var isRepeating by remember { mutableStateOf(false) }
-    var pendingIntent by remember { mutableStateOf<PendingIntent?>(null) }
     val alarmTimeTextState = remember { mutableStateOf(TextFieldValue()) }
 
     Scaffold(
