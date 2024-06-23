@@ -24,40 +24,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.*
-import androidx.compose.ui.text.input.TextFieldValue
 import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            // Gọi hàm để hiển thị ứng dụng báo thức
             AlarmApp()
         }
     }
 }
 
-// Hàm AlarmApp, hiển thị giao diện của full màn hình quản lí
+// Hàm AlarmApp, hiển thị giao diện của ứng dụng báo thức
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmApp() {
     val context = LocalContext.current
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    // State để lưu thời gian được chọn và trạng thái lặp lại của báo thức
     var selectedTime by remember { mutableStateOf(Calendar.getInstance()) }
     var isRepeating by remember { mutableStateOf(false) }
-    val alarmTimeTextState = remember { mutableStateOf(TextFieldValue()) }
 
+    // Scaffold để hiển thị cấu trúc giao diện
     Scaffold(
         topBar = {
+            // Thanh top bar của ứng dụng
             TopAppBar(
                 title = { Text("Alarm App") }
             )
         },
         content = {
+            // Nội dung chính của ứng dụng
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -65,54 +68,37 @@ fun AlarmApp() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-
                 Spacer(modifier = Modifier.height(16.dp))
-                // Hàm cập nhật tgian lựa chọn từ TimePicker và hiển thị trên màn hình( Text Field)
-                TimePicker(selectedTime) { newTime ->
+                // Component chọn thời gian báo thức
+                TimePicker(selectedTime = selectedTime, onTimeSelected = { newTime ->
                     selectedTime = newTime
-                    updateAlarmTimeText(selectedTime, alarmTimeTextState)
-                }
+                })
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isRepeating,
-                        onCheckedChange = { isChecked ->
-                            isRepeating = isChecked
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Repeat",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                }
+                // Checkbox để chọn lặp lại báo thức
+                RepeatCheckbox(isRepeating = isRepeating, onCheckedChange = { isChecked ->
+                    isRepeating = isChecked
+                })
                 Spacer(modifier = Modifier.height(16.dp))
-                // Hàm set alarm: 4 tham số : context,manager,tgian,status)
-                Button(
-                    onClick = {
-                        setAlarm(context, alarmManager, selectedTime, isRepeating)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Set Alarm")
-                }
+                // Button để đặt báo thức
+                SetAlarmButton(
+                    context = context,
+                    alarmManager = alarmManager,
+                    selectedTime = selectedTime,
+                    isRepeating = isRepeating
+                )
             }
         }
     )
 }
 
-// Hàm TimePicker, chọn giờ và phút
-@SuppressLint("AutoboxingStateCreation")
+// Component TimePicker, cho phép chọn giờ và phút
 @Composable
 fun TimePicker(selectedTime: Calendar, onTimeSelected: (Calendar) -> Unit) {
     val context = LocalContext.current
-    // 2 biến hour và minute để lưu giờ và phút lựa chọn
-    var hour by remember { mutableStateOf(selectedTime.get(Calendar.HOUR_OF_DAY)) }
-    var minute by remember { mutableStateOf(selectedTime.get(Calendar.MINUTE)) }
+    var hour by remember { mutableIntStateOf(selectedTime.get(Calendar.HOUR_OF_DAY)) }
+    var minute by remember { mutableIntStateOf(selectedTime.get(Calendar.MINUTE)) }
 
+    // Giao diện chọn giờ và phút
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
@@ -127,14 +113,12 @@ fun TimePicker(selectedTime: Calendar, onTimeSelected: (Calendar) -> Unit) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            //Gán giờ và phút đã chọn vào biến hour và minute, được theo dõi bởi remember
-
             Text("Hour:")
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
                 enabled = false,
                 value = hour.toString(),
-                onValueChange = { if (it.isNotBlank()) hour = it.toInt() },
+                onValueChange = { },
                 modifier = Modifier.width(60.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -143,23 +127,20 @@ fun TimePicker(selectedTime: Calendar, onTimeSelected: (Calendar) -> Unit) {
             OutlinedTextField(
                 enabled = false,
                 value = minute.toString(),
-                onValueChange = { if (it.isNotBlank()) minute = it.toInt() },
+                onValueChange = { },
                 modifier = Modifier.width(60.dp)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
+        // Button để mở dialog chọn giờ và phút
         Button(
             onClick = {
                 showTimePickerDialog(context) { newHour, newMinute ->
                     hour = newHour
                     minute = newMinute
-
-                    // Tạo calendar mới với giờ và phút đã lựa chọn
                     val calendar = Calendar.getInstance()
                     calendar.set(Calendar.HOUR_OF_DAY, hour)
                     calendar.set(Calendar.MINUTE, minute)
-
-                    // Kiểm tra giờ và phút có hợp lệ không, gán cho selectedTime
                     onTimeSelected(calendar)
                 }
             }
@@ -169,14 +150,52 @@ fun TimePicker(selectedTime: Calendar, onTimeSelected: (Calendar) -> Unit) {
     }
 }
 
-//Hàm show TimePickerDialog
+// Component Checkbox để chọn lặp lại báo thức
+@Composable
+fun RepeatCheckbox(isRepeating: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = isRepeating,
+            onCheckedChange = { isChecked ->
+                onCheckedChange(isChecked)
+            }
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "Repeat",
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp
+        )
+    }
+}
+
+// Component Button để đặt báo thức
+@Composable
+fun SetAlarmButton(
+    context: Context,
+    alarmManager: AlarmManager,
+    selectedTime: Calendar,
+    isRepeating: Boolean
+) {
+    Button(
+        onClick = {
+            setAlarm(context, alarmManager, selectedTime, isRepeating)
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Set Alarm")
+    }
+}
+
+// Hàm show TimePickerDialog để hiển thị dialog chọn giờ và phút
 private fun showTimePickerDialog(context: Context, onTimeSet: (Int, Int) -> Unit) {
-    // Lấy giờ và phút hiện tại từ hệ thống
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     val minute = calendar.get(Calendar.MINUTE)
 
-    // Tạo dialog TimePickerDialog, gán giờ và phút hiện tại vào dialog
+    // Tạo và hiển thị dialog TimePickerDialog
     val timePickerDialog = TimePickerDialog(
         context,
         { _, hourOfDay, minute ->
@@ -187,13 +206,12 @@ private fun showTimePickerDialog(context: Context, onTimeSet: (Int, Int) -> Unit
         true
     )
 
-    // Hiển thị dialog
     timePickerDialog.show()
 }
 
-// Hàm set alarm: có repeat hoặc không
+// Hàm setAlarm để đặt báo thức
 @SuppressLint("ScheduleExactAlarm")
-fun setAlarm(
+private fun setAlarm(
     context: Context,
     alarmManager: AlarmManager,
     selectedTime: Calendar,
@@ -207,6 +225,7 @@ fun setAlarm(
         PendingIntent.FLAG_UPDATE_CURRENT
     )
 
+    // Đặt báo thức lại hoặc một lần
     if (isRepeating) {
         alarmManager.setRepeating(
             AlarmManager.RTC_WAKEUP,
@@ -222,19 +241,8 @@ fun setAlarm(
         )
     }
 
+    // Hiển thị thông báo báo thức đã được đặt
     val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     val formattedTime = dateFormat.format(selectedTime.time)
     Toast.makeText(context, "Alarm set for $formattedTime", Toast.LENGTH_SHORT).show()
 }
-
-// Cập nhật tgian lựa chọn từ TimePicker, hiển thị trên màn hình
-private fun updateAlarmTimeText(
-    selectedTime: Calendar,
-    alarmTimeTextState: MutableState<TextFieldValue>
-) {
-    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val formattedTime = dateFormat.format(selectedTime.time)
-    alarmTimeTextState.value = TextFieldValue(formattedTime)
-}
-
-
