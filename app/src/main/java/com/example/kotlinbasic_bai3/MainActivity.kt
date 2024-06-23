@@ -190,6 +190,7 @@ fun SetAlarmButton(
 }
 
 // Hàm show TimePickerDialog để hiển thị dialog chọn giờ và phút
+@Suppress("NAME_SHADOWING")
 private fun showTimePickerDialog(context: Context, onTimeSet: (Int, Int) -> Unit) {
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
