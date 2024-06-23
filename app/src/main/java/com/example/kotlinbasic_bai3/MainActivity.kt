@@ -33,7 +33,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // Gọi hàm để hiển thị ứng dụng báo thức
             AlarmApp()
         }
     }
